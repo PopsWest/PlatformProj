@@ -4,53 +4,52 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-
 public class ControlePlayer : MonoBehaviour
 {
-    float interval;
     [SerializeField]
-    float aceleracao,forcaPulo,velocidadeMaxima;
+    float aceleracao, forcaPulo, velocidadeMaxima;
     [SerializeField]
     LayerMask mascaraDeLayers;
-    [SerializeField]
-    Image barraPulo;
-    public TextMeshProUGUI vidas, itens;
+    [SerializeField] Image barraPulo;
+
     bool noChao = false;
-    bool jumping=false;
-    Rigidbody2D rb;//referencia para o componente do Rigidbody2D
-    int coletaItens = 0;
-    int quantidadeVida = 3;
+    bool jumping = false;
+    Rigidbody2D rb;
+
     InputAction move;
     InputAction jump;
+
+    int itensColetados = 0;
+    int qntVidas = 2;
+
+    [SerializeField] TextMeshProUGUI pontos, vidas;
+
     private void Start()
     {
+        StartCoroutine(BarraRegenera());
+        AtualizaPontos();
+        AtualizaVidas();
+
         move = InputSystem.actions.FindAction("Move");
         jump = InputSystem.actions.FindAction("Jump");
         rb = GetComponent<Rigidbody2D>();
-        interval = 1 * Time.deltaTime;
         
-
-
     }
 
     private void Update()
     {
-        if (jump.WasPressedThisFrame() && noChao && barraPulo.fillAmount>0)
+        if (jump.WasPressedThisFrame() && noChao && barraPulo.fillAmount > 0)
         {
             jumping = true;
             barraPulo.fillAmount -= 0.1f;
-            
         }
 
-        vidas.text = "Vidas: " + quantidadeVida.ToString();
-        itens.text = "Pontos: " + coletaItens.ToString();
-        
+
     }
     private void FixedUpdate()
     {
-        vida();
-
         Vector2 direcao = move.ReadValue<Vector2>();
+
         if (direcao != Vector2.zero)
         {
             rb.AddForce(Vector2.right * direcao.x * aceleracao, ForceMode2D.Force);
@@ -63,6 +62,7 @@ public class ControlePlayer : MonoBehaviour
         {
             rb.AddForce(new Vector2(rb.linearVelocityX * -aceleracao, 0), ForceMode2D.Force);
         }
+
         if (jumping)
         {
             rb.AddForce(Vector2.up * forcaPulo, ForceMode2D.Impulse);
@@ -73,59 +73,37 @@ public class ControlePlayer : MonoBehaviour
             GetComponent<BoxCollider2D>().bounds.min.y);
 
         noChao = Physics2D.OverlapCircle(baseObjeto, 0.1f, mascaraDeLayers);
-
-        if (barraPulo.fillAmount < 1)
-        {
-
-            StartCoroutine(Barra(interval));
-        }
-        
-
-
     }
-    IEnumerator Barra(float interval)
+
+    IEnumerator BarraRegenera()
     {
-        
-        
-            
-            yield return new WaitForSeconds(interval);
-            barraPulo.fillAmount += 0.001f;
-        
+        yield return new WaitForSeconds(0.1f);
+        barraPulo.fillAmount += 0.001f;
+        StartCoroutine(BarraRegenera());
     }
-    private void OnTriggerEnter2D(Collider2D collision)
+
+    void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.gameObject.tag == "Item")
+        if (collision.CompareTag("Item"))
         {
-            coletaItens++;
+            itensColetados++;
+            AtualizaPontos();
             Destroy(collision.gameObject);
-            
         }
     }
 
-    void vida()
+    private void AtualizaPontos()
     {
-        if(coletaItens%3==0)
+        pontos.text = "Coletado: " + itensColetados.ToString("000");
+
+        if (itensColetados%3 == 0)
         {
-            quantidadeVida++;
+            qntVidas++;
+            AtualizaVidas();
         }
     }
-
-
-
-
-
-
-
-    //Essa não é a melhor maneira de se checar 
-    //se o Player está no chão
-    private void OnCollisionStay2D(Collision2D collision)
+    private void AtualizaVidas()
     {
-     //   noChao = true;
+        vidas.text = "Vidas: " + qntVidas.ToString("000");
     }
-    private void OnCollisionExit2D(Collision2D collision)
-    {
-     //   noChao = false;
-    }
-
-    
 }
